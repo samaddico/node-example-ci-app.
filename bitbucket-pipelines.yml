@@ -8,8 +8,27 @@ image: node:10.15.0
 pipelines:
   default:
     - step:
+        name: Run NPM Install
         caches:
           - node
-        script: # Modify the commands below to build your repository.
+        script: 
           - npm install
+    - step:
+        name: Run Node Tests
+        caches:
+          - node
+        script:
           - npm test
+    - step:
+        name: Build Docker Image
+        image: atlassian/pipelines-awscli
+        script:
+          - echo $(aws ecr get-login --no-include-email --region us-west-2)  > login.sh
+
+          - sh login.sh
+
+          - docker build -t $DOCKER_IMAGE_NAME:${BITBUCKET_COMMIT} .
+
+          - docker tag $DOCKER_IMAGE_NAME:${BITBUCKET_COMMIT} $DOCKER_ECR_REPO_URL/$DOCKER_IMAGE_NAME:${BITBUCKET_COMMIT}
+
+          - docker push $DOCKER_ECR_REPO_URL/$DOCKER_IMAGE_NAME:${BITBUCKET_COMMIT}      
