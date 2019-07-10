@@ -19,19 +19,40 @@ pipelines:
           - node
         script:
           - npm test
+          
     - step:
-        name: Build Docker Image
-        image: atlassian/pipelines-awscli
+        name: Build and Push Docker Image
+        image: google/cloud-sdk:latest
         script:
-          - echo $(aws ecr get-login --no-include-email --region us-west-2)  > login.sh
+        - echo $GCLOUD_API_KEYFILE > ~/.gcloud-api-key.json
+        - gcloud auth activate-service-account --key-file ~/.gcloud-api-key.json
+        - docker login -u _json_key --password-stdin https://$DOCKER_GCR_REPO_URL < ~/.gcloud-api-key.json
 
-          - sh login.sh
+        - docker build -t $DOCKER_IMAGE_NAME:${BITBUCKET_COMMIT} .
 
-          - docker build -t $DOCKER_IMAGE_NAME:${BITBUCKET_COMMIT} .
+        - docker tag $DOCKER_IMAGE_NAME:${BITBUCKET_COMMIT} $DOCKER_GCR_REPO_URL/$GCLOUD_PROJECT_ID/$DOCKER_IMAGE_NAME:${BITBUCKET_COMMIT}
 
-          - docker tag $DOCKER_IMAGE_NAME:${BITBUCKET_COMMIT} $DOCKER_ECR_REPO_URL/$DOCKER_IMAGE_NAME:${BITBUCKET_COMMIT}
+        - docker push $DOCKER_GCR_REPO_URL/$GCLOUD_PROJECT_ID/$DOCKER_IMAGE_NAME:${BITBUCKET_COMMIT}
 
-          - docker push $DOCKER_ECR_REPO_URL/$DOCKER_IMAGE_NAME:${BITBUCKET_COMMIT}
+#        - gcloud container clusters get-credentials $K8s_CLUSTER_NAME --zone=$GCLOUD_ZONE --project $GCLOUD_PROJECT_ID
+
+           # DEPLOYMENT
+#        - kubectl set image deployment $K8s_DEPLOYMENT_NAME $K8s_DEPLOYMENT_NAME=$DOCKER_GCR_REPO_URL/$GCLOUD_PROJECT_ID/$DOCKER_IMAGE_NAME:${BITBUCKET_COMMIT} --record --namespace=$K8s_NAMESPACE
+
+
+#    - step:
+#        name: Build Docker Image
+#        image: atlassian/pipelines-awscli
+#        script:
+#          - echo $(aws ecr get-login --no-include-email --region us-west-2)  > login.sh
+
+#          - sh login.sh
+
+#          - docker build -t $DOCKER_IMAGE_NAME:${BITBUCKET_COMMIT} .
+
+#          - docker tag $DOCKER_IMAGE_NAME:${BITBUCKET_COMMIT} $DOCKER_ECR_REPO_URL/$DOCKER_IMAGE_NAME:${BITBUCKET_COMMIT}
+
+#          - docker push $DOCKER_ECR_REPO_URL/$DOCKER_IMAGE_NAME:${BITBUCKET_COMMIT}
 
 options:
   docker: true
