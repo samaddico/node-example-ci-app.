@@ -22,7 +22,7 @@
     "serve-favicon": "^2.4.5"
   },
   "devDependencies": {
-    "eslint": "^4.12.1",
+    "eslint": "^4.18.2",
     "jest": "^21.2.1",
     "nodemon": "^1.12.5",
     "prettier": "^1.9.1",
